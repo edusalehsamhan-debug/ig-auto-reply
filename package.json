@@ -1,11 +1,12 @@
 {
   "name": "ig-auto-reply",
-  "version": "1.0.0",
-  "description": "Instagram comment auto-reply + DM automation via Meta's official API",
+  "version": "2.0.0",
+  "description": "Instagram comment + DM automation with per-video rules and a web dashboard, via Meta's official API.",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test/test.js"
   },
   "engines": { "node": ">=18" },
   "dependencies": {
