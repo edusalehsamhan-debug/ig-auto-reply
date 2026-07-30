@@ -1,0 +1,53 @@
+{
+  "_comment": "Edit this file to change your automation. No coding needed. 'keywords' are matched case-insensitively anywhere in the text. Use [] for keywords to match EVERY comment/message. 'publicReplies' — one is picked at random and posted as a reply under the comment. 'dm' — sent as a private message to the commenter (private reply). Set any field to null to skip that action.",
+
+  "commentRules": [
+    {
+      "name": "price-request",
+      "keywords": ["price", "cost", "how much", "سعر", "بكم"],
+      "publicReplies": [
+        "Just sent you the details in your DMs! 📩",
+        "Check your DMs, I sent you everything! ✨"
+      ],
+      "dm": "Hey! Thanks for asking about the price 😊 Here are all the details: [YOUR PRICE INFO / LINK HERE]"
+    },
+    {
+      "name": "link-request",
+      "keywords": ["link", "guide", "download", "رابط"],
+      "publicReplies": [
+        "Sent it to your DMs! 📬"
+      ],
+      "dm": "Here's the link you asked for: [YOUR LINK HERE] — let me know if you have any questions!"
+    },
+    {
+      "name": "catch-all-comments",
+      "keywords": [],
+      "publicReplies": [
+        "Thank you! 🙏",
+        "Appreciate you! ❤️",
+        "Thanks for the support! 🔥"
+      ],
+      "dm": null
+    }
+  ],
+
+  "dmRules": [
+    {
+      "name": "greeting",
+      "keywords": ["hi", "hello", "hey", "مرحبا", "السلام"],
+      "reply": "Hey there! 👋 Thanks for reaching out. How can I help you today?\n\n1️⃣ Type PRICE for pricing\n2️⃣ Type INFO to learn more\n3️⃣ Or just ask me anything!"
+    },
+    {
+      "name": "price",
+      "keywords": ["price", "pricing", "cost", "سعر"],
+      "reply": "Here's our pricing: [YOUR PRICE INFO HERE]"
+    },
+    {
+      "name": "info",
+      "keywords": ["info", "information", "معلومات"],
+      "reply": "Here's more about what we do: [YOUR INFO HERE]"
+    }
+  ],
+
+  "dmFallback": "Thanks for your message! 🙌 A team member will get back to you soon. Meanwhile, type PRICE or INFO for quick answers."
+}
