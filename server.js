@@ -109,6 +109,7 @@ async function handleComment(value) {
   console.log(`💬 Comment on media ${mediaId} from @${from.username || from.id}: "${text}"`);
 
   const all = await getRules();
+  if (all.commentsEnabled === false) return console.log("  → comment auto-replies are turned OFF");
   const rule = matchRule(commentRulesForMedia(all, mediaId), text);
   if (!rule) return console.log("  → no rule matched");
   console.log(`  → matched "${rule.name}"`);
@@ -125,9 +126,11 @@ async function handleMessage(event) {
   console.log(`📩 DM from ${senderId}: "${msg.text}"`);
 
   const all = await getRules();
+  if (all.dmEnabled === false) return console.log("  → DM auto-replies are turned OFF");
   const rule = matchRule(all.defaultDmRules, msg.text);
-  const reply = rule ? rule.reply : all.dmFallback;
-  if (!reply) return console.log("  → no DM rule and no fallback");
+  // Only fall back to the catch-all reply when the owner has explicitly enabled it.
+  const reply = rule ? rule.reply : (all.dmFallbackEnabled ? all.dmFallback : null);
+  if (!reply) return console.log("  → no DM keyword matched (fallback off or empty)");
   console.log(`  → ${rule ? `matched "${rule.name}"` : "fallback"}`);
   await sendDm(senderId, reply);
 }
