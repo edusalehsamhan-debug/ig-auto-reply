@@ -70,6 +70,17 @@ export function dashboardHtml() {
   .danger{background:transparent;border-color:var(--danger);color:var(--danger)} .danger:hover{background:var(--danger-tint)}
   .sm{padding:7px 12px;font-size:13px;border-radius:8px}
 
+  .toggle{display:flex;align-items:center;gap:14px;padding:15px 16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);margin:0 0 16px}
+  .toggle .tl{flex:1;min-width:0} .toggle .tl b{display:block;color:var(--ink);font-size:14px;font-weight:650}
+  .toggle .tl span{color:var(--muted);font-size:12.5px}
+  .toggle .state{font-size:12px;font-weight:700;color:var(--muted);min-width:26px;text-align:right}
+  .switch{position:relative;width:46px;height:27px;flex:none}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .track{position:absolute;inset:0;background:#c9ced8;border-radius:999px;transition:background .18s;cursor:pointer}
+  .switch .track:before{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;background:#fff;border-radius:50%;box-shadow:var(--shadow-sm);transition:transform .18s}
+  .switch input:checked + .track{background:var(--good)}
+  .switch input:checked + .track:before{transform:translateX(19px)}
+  .switch input:focus-visible + .track{box-shadow:0 0 0 3px var(--brand-ring)}
   .rule{border:1px solid var(--line);border-radius:var(--r-md);padding:16px;margin:12px 0;background:var(--surface-2)}
   .rule label:first-child{margin-top:0}
   .row{display:flex;gap:10px;flex-wrap:wrap} .row>*{flex:1;min-width:200px}
@@ -173,10 +184,16 @@ function renderApp(){
   paint();
 }
 
+function toggleRow(field,deflt,label,sub){
+  const on = RULES[field]===undefined?deflt:!!RULES[field];
+  return \`<div class="toggle"><div class="tl"><b>\${label}</b><span>\${sub}</span></div>
+    <span class="state">\${on?'ON':'OFF'}</span>
+    <label class="switch"><input type="checkbox" \${on?'checked':''} onchange="RULES.\${field}=this.checked;paint()"><span class="track"></span></label></div>\`;
+}
 function paint(){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
   const p=$('#panel');
-  if(TAB==='comments') p.innerHTML=commentRulesUI(RULES.defaultCommentRules,'defaultCommentRules','Default comment replies','Used on any post that has no category or custom rule assigned.');
+  if(TAB==='comments') p.innerHTML=toggleRow('commentsEnabled',true,'Comment auto-replies','Master switch. When off, the bot ignores all comments.')+commentRulesUI(RULES.defaultCommentRules,'defaultCommentRules','Default comment replies','Used on any post that has no category or custom rule assigned.');
   else if(TAB==='dms') p.innerHTML=dmRulesUI();
   else if(TAB==='categories') p.innerHTML=categoriesUI();
   else p.innerHTML=postsUI();
@@ -216,7 +233,8 @@ function delRule(path,i){listByPath(path).splice(i,1);paint();}
 // ---------- DM rules ----------
 function dmRulesUI(){
   const L=RULES.defaultDmRules;
-  return \`<div class="card"><h2>DM replies</h2><p class="hint">Auto-answers when someone sends your account a direct message.</p>
+  return \`\${toggleRow('dmEnabled',true,'DM auto-replies','Master switch. When off, the bot never replies to direct messages.')}
+    <div class="card"><h2>DM replies</h2><p class="hint">Auto-answers when someone sends your account a direct message.</p>
     <div>\${L.map((r,i)=>\`<div class="rule">
       <label>Rule name</label><input value="\${esc(r.name||'')}" oninput="RULES.defaultDmRules[\${i}].name=this.value">
       <label>Trigger keywords <span style="color:var(--muted);font-weight:500">(comma-separated, empty matches all)</span></label>
@@ -225,9 +243,10 @@ function dmRulesUI(){
       <div style="height:12px"></div><button class="danger sm" onclick="RULES.defaultDmRules.splice(\${i},1);paint()">Delete</button>
     </div>\`).join('')}</div>
     <button class="ghost sm" onclick="RULES.defaultDmRules.push({name:'new',keywords:[],reply:''});paint()">+ Add DM rule</button>
-    <label style="margin-top:20px">Fallback reply <span style="color:var(--muted);font-weight:500">(sent when no rule matches, empty = stay silent)</span></label>
-    <textarea oninput="RULES.dmFallback=this.value" placeholder="Thanks for your message! We'll reply shortly.">\${esc(RULES.dmFallback||'')}</textarea>
-  </div>\`;
+    </div>
+    \${toggleRow('dmFallbackEnabled',false,'Reply to messages that don\\'t match any keyword','Off = the bot only replies to the keywords above. On = it also sends the fallback below to everyone else.')}
+    \${(RULES.dmFallbackEnabled)?\`<div class="card"><label style="margin-top:0">Fallback reply</label>
+      <textarea oninput="RULES.dmFallback=this.value" placeholder="Thanks for your message! We'll reply shortly.">\${esc(RULES.dmFallback||'')}</textarea></div>\`:''}\`;
 }
 
 // ---------- Categories ----------
