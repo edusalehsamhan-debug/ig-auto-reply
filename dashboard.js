@@ -15,7 +15,7 @@ export function dashboardHtml() {
     --good:#0f9d58; --good-tint:#e7f6ee; --danger:#e0484d; --danger-tint:#fdecec;
     --shadow-sm:0 1px 2px rgba(20,22,26,.05);
     --shadow-md:0 6px 24px -8px rgba(20,22,26,.12);
-    --z-header:100; --z-savebar:100;
+    --z-header:100; --z-savebar:100; --z-backdrop:200;
     --r-lg:16px; --r-md:11px; --r-sm:9px;
   }
   *{box-sizing:border-box}
@@ -93,15 +93,33 @@ export function dashboardHtml() {
   .toast.show{opacity:1} .toast.ok{color:var(--good)} .toast.err{color:var(--danger)}
   .save-note{color:var(--muted);font-size:12.5px}
 
-  /* posts */
-  .post{border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin:10px 0;background:var(--surface)}
-  .post .head{display:flex;gap:14px;align-items:center}
-  .post img{width:60px;height:60px;object-fit:cover;border-radius:9px;background:#eceef2;flex:none}
-  .post .cap{flex:1;font-size:13.5px;color:var(--body);line-height:1.4;max-height:42px;overflow:hidden}
-  .post select{max-width:210px;flex:none}
-  .post .custom{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
-  .badge{display:inline-block;font-size:11px;font-weight:700;color:var(--brand-600);background:var(--brand-tint);
-    padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  /* posts — profile-style gallery grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:4px}
+  .tile{position:relative;aspect-ratio:1/1;border-radius:var(--r-sm);overflow:hidden;cursor:pointer;
+    background:#eceef2;border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .type{position:absolute;top:8px;right:9px;color:#fff;font-size:14px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
+  .tile .ov{position:absolute;inset:auto 0 0 0;padding:24px 10px 9px;display:flex;align-items:center;gap:6px;
+    background:linear-gradient(to top,rgba(10,12,16,.74),rgba(10,12,16,0))}
+  .tile .ov .m{color:#fff;font-size:12px;font-weight:650;text-shadow:0 1px 2px rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .dot{width:7px;height:7px;border-radius:50%;flex:none;background:#cfd4dd;box-shadow:0 0 0 2px rgba(255,255,255,.4)}
+  .tile.set .dot{background:var(--brand)}
+  .tile .edit{position:absolute;inset:0;display:grid;place-items:center;background:rgba(18,20,26,.44);
+    color:#fff;font-weight:650;font-size:13.5px;opacity:0;transition:opacity .15s}
+  .tile:hover .edit,.tile:focus-visible .edit{opacity:1}
+  .tile:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-ring)}
+
+  /* post detail modal */
+  .backdrop{position:fixed;inset:0;z-index:var(--z-backdrop);background:rgba(16,18,22,.55);
+    backdrop-filter:blur(2px);display:grid;place-items:center;padding:20px}
+  .modal{width:100%;max-width:680px;max-height:90dvh;overflow:auto;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-md)}
+  .modal .top{display:flex;gap:16px;padding:18px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .modal .shot{width:180px;height:180px;flex:none;border-radius:var(--r-md);object-fit:cover;background:#eceef2}
+  .modal .meta{flex:1;min-width:0}
+  .modal .meta h2{font-size:16px}
+  .modal .cap2{font-size:13.5px;color:var(--body);line-height:1.45;max-height:92px;overflow:auto;margin:4px 0 10px}
+  .modal .body{padding:18px}
 
   /* login */
   .center{min-height:100dvh;display:grid;place-items:center;padding:24px}
@@ -113,7 +131,8 @@ export function dashboardHtml() {
   .login .msg{color:var(--danger);font-size:13px;font-weight:600;margin-top:12px;min-height:18px}
 
   @media (max-width:560px){
-    .post .head{flex-wrap:wrap} .post select{max-width:none;width:100%}
+    .grid{grid-template-columns:repeat(2,1fr);gap:6px}
+    .modal .top{flex-direction:column} .modal .shot{width:100%;height:auto;aspect-ratio:1/1}
     main{padding:18px 16px 120px} header{padding:12px 16px} .save-bar{padding:12px 16px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -227,8 +246,9 @@ function listByPath(path){
 function upd(path,i,k,v){listByPath(path)[i][k]=v;}
 function updKw(path,i,v){listByPath(path)[i].keywords=v.split(',').map(s=>s.trim()).filter(Boolean);}
 function updLines(path,i,k,v){listByPath(path)[i][k]=v.split('\\n').map(s=>s.trim()).filter(Boolean);}
-function addRule(path){listByPath(path).push({name:'new rule',keywords:[],publicReplies:[],dm:''});paint();}
-function delRule(path,i){listByPath(path).splice(i,1);paint();}
+function rerender(path){ if(OPEN && path==='post:'+OPEN) renderModal(); else paint(); }
+function addRule(path){listByPath(path).push({name:'new rule',keywords:[],publicReplies:[],dm:''});rerender(path);}
+function delRule(path,i){listByPath(path).splice(i,1);rerender(path);}
 
 // ---------- DM rules ----------
 function dmRulesUI(){
@@ -266,47 +286,74 @@ function addCat(){const el=$('#newcat');const n=(el?el.value:'').trim();if(!n)re
 function delCat(n){if(confirm('Delete category "'+n+'"?')){delete RULES.categories[n];
   Object.keys(RULES.postAssignments).forEach(k=>{if(RULES.postAssignments[k].category===n)delete RULES.postAssignments[k];});paint();}}
 
-// ---------- Per-video replies ----------
+// ---------- Per-video replies (profile-style grid) ----------
+let OPEN=null;
 function postsUI(){
   return \`<div class="card"><h2>Set replies for each video</h2>
-    <p class="hint">Choose what happens when someone comments on each post or reel: use your <b>Default</b> replies, apply a <b>category</b>, or write <b>custom keywords and a reply just for that video</b>.</p>
-    <div id="posts"><p class="hint" style="margin:0">Loading your posts…</p></div></div>\`;
+    <p class="hint">Your posts and reels, newest first, shown just like your profile. <b>Tap any one</b> to choose what happens when people comment on it: your <b>Default</b> replies, a <b>category</b>, or <b>custom keywords just for that video</b>. A purple dot marks the ones you've customised.</p>
+    <div id="posts" class="gwrap"><p class="hint" style="margin:0">Loading your posts…</p></div></div>\`;
 }
 async function loadMedia(){
   try{const j=await api('/admin/media');MEDIA=j.media||[];}catch(e){return;}
   const box=$('#posts'); if(!box)return;
   if(!MEDIA.length){box.innerHTML='<p class="hint" style="margin:0">No posts found yet. If your account has media, click Save once and reopen this tab.</p>';return;}
-  box.innerHTML=MEDIA.map(m=>postCard(m)).join('');
+  box.innerHTML='<div class="grid">'+MEDIA.map(m=>tile(m)).join('')+'</div>';
 }
 function postMode(id){ const a=RULES.postAssignments[id]; if(a&&Array.isArray(a.commentRules)) return 'custom'; if(a&&a.category) return 'cat:'+a.category; return ''; }
-function postCard(m){
+function modeLabel(id){ const mode=postMode(id); if(mode==='custom') return 'Custom'; if(mode.startsWith('cat:')) return esc(mode.slice(4)); return 'Default'; }
+function tile(m){
+  const thumb=m.thumbnail_url||m.media_url||'';
+  const set=postMode(m.id)!=='';
+  const type=(m.media_type==='VIDEO')?'▶':(m.media_type==='CAROUSEL_ALBUM'?'▦':'');
+  return \`<div class="tile\${set?' set':''}" tabindex="0" role="button" aria-label="Edit replies for this post"
+      onclick="openPost('\${m.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPost('\${m.id}')}">
+    <img src="\${thumb}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    \${type?\`<div class="type">\${type}</div>\`:''}
+    <div class="edit">Edit replies</div>
+    <div class="ov"><span class="dot"></span><span class="m">\${modeLabel(m.id)}</span></div>
+  </div>\`;
+}
+function openPost(id){ OPEN=id; renderModal(); }
+function escClose(e){ if(e.key==='Escape') closePost(); }
+function closePost(){ OPEN=null; const b=$('#backdrop'); if(b)b.remove(); document.removeEventListener('keydown',escClose); loadMedia(); }
+function renderModal(){
+  const m=MEDIA.find(x=>x.id===OPEN); if(!m)return;
   const cats=Object.keys(RULES.categories);
   const mode=postMode(m.id);
   const thumb=m.thumbnail_url||m.media_url||'';
-  const cap=esc((m.caption||'(no caption)').slice(0,90));
-  const link=m.permalink?\` <a href="\${esc(m.permalink)}" target="_blank" rel="noopener">view</a>\`:'';
-  const tag=mode==='custom'?'<span class="badge">custom</span>':(mode.startsWith('cat:')?'<span class="badge">'+esc(mode.slice(4))+'</span>':'');
-  return \`<div class="post">
-    <div class="head">
-      <img src="\${thumb}" alt="" onerror="this.style.visibility='hidden'">
-      <div class="cap">\${cap}\${link}\${tag}</div>
-      <select onchange="setPostMode('\${m.id}',this.value)">
-        <option value="" \${mode===''?'selected':''}>Default replies</option>
-        <option value="custom" \${mode==='custom'?'selected':''}>Custom for this video</option>
+  const link=m.permalink?\`<a href="\${esc(m.permalink)}" target="_blank" rel="noopener">View on Instagram ↗</a>\`:'';
+  const detail = mode==='custom'
+    ? \`<div style="margin-top:16px" id="rules_post:\${m.id}">\${(RULES.postAssignments[m.id].commentRules||[]).map((r,i)=>ruleRow(r,i,'post:'+m.id)).join('')}</div>
+       <button class="ghost sm" onclick="addRule('post:\${m.id}')">+ Add a keyword &amp; reply</button>\`
+    : mode.startsWith('cat:')
+      ? \`<p class="hint" style="margin-top:14px">This video uses the <b>\${esc(mode.slice(4))}</b> category. Edit those replies in the <b>Categories</b> tab.</p>\`
+      : \`<p class="hint" style="margin-top:14px">This video uses your <b>Default</b> comment replies. Edit those in the <b>Comment replies</b> tab.</p>\`;
+  const html=\`<div class="modal" onclick="event.stopPropagation()">
+    <div class="top">
+      <img class="shot" src="\${thumb}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="meta"><h2>This video's replies</h2>
+        <div class="cap2">\${esc(m.caption||'(no caption)')}</div>\${link}</div>
+      <button class="ghost sm" onclick="closePost()">Close</button>
+    </div>
+    <div class="body">
+      <label style="margin-top:0">When someone comments on this video…</label>
+      <select onchange="setPostMode('\${m.id}',this.value);renderModal()">
+        <option value="" \${mode===''?'selected':''}>Use my Default replies</option>
+        <option value="custom" \${mode==='custom'?'selected':''}>Custom keywords &amp; reply just for this video</option>
         \${cats.map(c=>\`<option value="cat:\${esc(c)}" \${mode==='cat:'+c?'selected':''}>Category: \${esc(c)}</option>\`).join('')}
       </select>
-    </div>
-    \${mode==='custom'?\`<div class="custom">
-      <div id="rules_post:\${m.id}">\${(RULES.postAssignments[m.id].commentRules||[]).map((r,i)=>ruleRow(r,i,'post:'+m.id)).join('')}</div>
-      <button class="ghost sm" onclick="addRule('post:\${m.id}')">+ Add a keyword &amp; reply for this video</button>
-    </div>\`:''}
-  </div>\`;
+      \${detail}
+    </div></div>\`;
+  let b=$('#backdrop');
+  if(!b){ b=document.createElement('div'); b.id='backdrop'; b.className='backdrop'; b.onclick=closePost;
+    document.body.appendChild(b); document.addEventListener('keydown',escClose); }
+  b.innerHTML=html;
 }
 function setPostMode(id,val){
   if(val==='custom'){ RULES.postAssignments[id]={commentRules:(RULES.postAssignments[id]&&RULES.postAssignments[id].commentRules)||[{name:'rule',keywords:[],publicReplies:[],dm:''}]}; }
   else if(val.startsWith('cat:')){ RULES.postAssignments[id]={category:val.slice(4)}; }
   else { delete RULES.postAssignments[id]; }
-  loadMedia();
+  const box=$('#posts'); if(box&&MEDIA.length) box.innerHTML='<div class="grid">'+MEDIA.map(m=>tile(m)).join('')+'</div>';
 }
 
 // ---------- Save ----------
