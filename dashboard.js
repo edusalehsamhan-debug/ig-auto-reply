@@ -95,7 +95,7 @@ function renderApp(){
         <button data-t="comments">Default comment replies</button>
         <button data-t="dms">DM replies</button>
         <button data-t="categories">Categories</button>
-        <button data-t="posts">Assign per video</button>
+        <button data-t="posts">Per-video replies</button>
       </div>
       <div id="panel"></div>
     </main>
@@ -136,6 +136,7 @@ function ruleRow(r,i,path){
 function listByPath(path){
   if(path==='defaultCommentRules') return RULES.defaultCommentRules;
   if(path.startsWith('cat:')) return RULES.categories[path.slice(4)].commentRules;
+  if(path.startsWith('post:')){ const id=path.slice(5); RULES.postAssignments[id]=RULES.postAssignments[id]||{}; RULES.postAssignments[id].commentRules=RULES.postAssignments[id].commentRules||[]; return RULES.postAssignments[id].commentRules; }
   return [];
 }
 function upd(path,i,k,v){listByPath(path)[i][k]=v;}
@@ -165,7 +166,7 @@ function dmRulesUI(){
 function categoriesUI(){
   const names=Object.keys(RULES.categories);
   return \`<div class="card"><h2>Categories</h2>
-    <p class="hint">A category is a named set of comment replies (e.g. "fitness-videos"). Create them here, then assign your posts to them in the "Assign per video" tab.</p>
+    <p class="hint">A category is a named set of comment replies (e.g. "fitness-videos"). Create them here, then assign your posts to them in the "Per-video replies" tab.</p>
     <div class="row"><input id="newcat" placeholder="New category name, e.g. cooking-videos">
     <button class="sm" style="flex:0" onclick="addCat()">+ Create</button></div></div>
     \${names.map(n=>\`<div class="card"><div class="row"><h2 style="flex:1">📁 \${esc(n)}</h2>
@@ -176,30 +177,47 @@ function addCat(){const n=$('#newcat').value.trim();if(!n)return;if(!RULES.categ
 function delCat(n){if(confirm('Delete category '+n+'?')){delete RULES.categories[n];
   Object.keys(RULES.postAssignments).forEach(k=>{if(RULES.postAssignments[k].category===n)delete RULES.postAssignments[k];});paint();}}
 
-// ---------- Posts assignment ----------
+// ---------- Per-video replies ----------
 function postsUI(){
-  return \`<div class="card"><h2>Assign a category to each video</h2>
-    <p class="hint">Pick which category's replies each post/reel should use. Posts left as "Default" use the default comment replies.</p>
-    <div id="posts">Loading your recent posts…</div></div>\`;
+  return \`<div class="card"><h2>Set replies for each video</h2>
+    <p class="hint">Pick a post/reel below and choose what happens when someone comments on it: use the <b>Default</b> replies, apply a <b>category</b>, or write <b>custom keywords &amp; a reply just for that video</b>.</p>
+    <div id="posts">Loading your posts…</div></div>\`;
 }
 async function loadMedia(){
   try{const j=await api('/admin/media');MEDIA=j.media||[];}catch(e){return;}
-  const cats=Object.keys(RULES.categories);
   const box=$('#posts'); if(!box)return;
-  if(!MEDIA.length){box.innerHTML='<p class="hint">No posts found (or the account has no media yet).</p>';return;}
-  box.innerHTML=MEDIA.map(m=>{
-    const cur=RULES.postAssignments[m.id]?.category||'';
-    const thumb=m.thumbnail_url||m.media_url||'';
-    return \`<div class="post">
-      <img src="\${thumb}" onerror="this.style.visibility='hidden'">
-      <div class="cap">\${esc((m.caption||'(no caption)').slice(0,120))}</div>
-      <select onchange="assign('\${m.id}',this.value)">
-        <option value="">Default replies</option>
-        \${cats.map(c=>\`<option value="\${esc(c)}" \${c===cur?'selected':''}>\${esc(c)}</option>\`).join('')}
-      </select></div>\`;
-  }).join('');
+  if(!MEDIA.length){box.innerHTML='<p class="hint">No posts found yet (or still loading from Instagram — try Save then reopen this tab).</p>';return;}
+  box.innerHTML=MEDIA.map(m=>postCard(m)).join('');
 }
-function assign(id,cat){ if(cat) RULES.postAssignments[id]={category:cat}; else delete RULES.postAssignments[id]; }
+function postMode(id){ const a=RULES.postAssignments[id]; if(a&&Array.isArray(a.commentRules)) return 'custom'; if(a&&a.category) return 'cat:'+a.category; return ''; }
+function postCard(m){
+  const cats=Object.keys(RULES.categories);
+  const mode=postMode(m.id);
+  const thumb=m.thumbnail_url||m.media_url||'';
+  const cap=esc((m.caption||'(no caption)').slice(0,90));
+  const link=m.permalink?\`<a href="\${esc(m.permalink)}" target="_blank">view</a>\`:'';
+  return \`<div class="post" style="flex-direction:column;align-items:stretch">
+    <div style="display:flex;gap:12px;align-items:center">
+      <img src="\${thumb}" onerror="this.style.visibility='hidden'">
+      <div class="cap" style="flex:1">\${cap} \${link}</div>
+      <select onchange="setPostMode('\${m.id}',this.value)">
+        <option value="" \${mode===''?'selected':''}>Default replies</option>
+        <option value="custom" \${mode==='custom'?'selected':''}>✏️ Custom for this video</option>
+        \${cats.map(c=>\`<option value="cat:\${esc(c)}" \${mode==='cat:'+c?'selected':''}>📁 \${esc(c)}</option>\`).join('')}
+      </select>
+    </div>
+    \${mode==='custom'?\`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">
+      <div id="rules_post:\${m.id}">\${(RULES.postAssignments[m.id].commentRules||[]).map((r,i)=>ruleRow(r,i,'post:'+m.id)).join('')}</div>
+      <button class="ghost sm" onclick="addRule('post:\${m.id}')">+ Add a keyword &amp; reply for this video</button>
+    </div>\`:''}
+  </div>\`;
+}
+function setPostMode(id,val){
+  if(val==='custom'){ RULES.postAssignments[id]={commentRules:(RULES.postAssignments[id]&&RULES.postAssignments[id].commentRules)||[{name:'rule',keywords:[],publicReplies:[],dm:''}]}; }
+  else if(val.startsWith('cat:')){ RULES.postAssignments[id]={category:val.slice(4)}; }
+  else { delete RULES.postAssignments[id]; }
+  loadMedia();
+}
 
 // ---------- Save ----------
 async function save(){
